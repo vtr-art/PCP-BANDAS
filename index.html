@@ -145,7 +145,37 @@ h1 b{color:var(--red);font-weight:700}
 .gbtn:focus-visible{outline:2px solid var(--red);outline-offset:3px}
 .userbar{display:flex;justify-content:flex-end;align-items:center;gap:12px;font-size:12.5px;color:var(--muted);margin-top:-14px}
 .userbar b{color:var(--fg);font-weight:500}
+/* ===== Calendário do PDF ===== */
+.pdfsel{position:relative}
+.calbtn{appearance:none;font:inherit;font-family:var(--body);font-size:14px;letter-spacing:0;text-transform:none;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:8px 12px;cursor:pointer;display:flex;gap:6px;align-items:center;white-space:nowrap}
+.calbtn:hover{border-color:var(--red)} .calbtn:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.calbtn b{font-weight:500}
+.calpop{position:absolute;top:calc(100% + 6px);right:0;z-index:40;width:300px;max-width:calc(100vw - 32px);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;box-shadow:0 12px 30px #000a;display:flex;flex-direction:column;gap:8px;text-transform:none;letter-spacing:0;font-family:var(--body)}
+.calhead{display:flex;justify-content:space-between;align-items:center}
+.calhead b{font-family:var(--display);font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--fg)}
+.calnav{appearance:none;background:var(--panel-2);border:1px solid var(--line);color:var(--fg);border-radius:4px;width:34px;height:32px;font-size:18px;cursor:pointer}
+.calnav:hover{border-color:var(--red)}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+.cw{font-family:var(--mono);font-size:11px;color:var(--muted);padding:2px 0}
+.cd{appearance:none;font:inherit;font-size:14px;aspect-ratio:1;border-radius:4px;border:1px solid transparent;background:transparent;color:var(--muted);opacity:.45;cursor:default;font-variant-numeric:tabular-nums}
+.cd.tem{opacity:1;color:var(--fg);background:var(--panel-2);border-color:var(--line);cursor:pointer;font-weight:600;position:relative}
+.cd.tem::after{content:"";position:absolute;left:50%;bottom:3px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--red)}
+.cd.tem:hover{border-color:var(--red)}
+.cd.hoje{outline:1px dashed var(--muted)}
+.cd.sel{background:var(--red);border-color:var(--red);color:#fff}
+.cd.sel::after{background:#fff}
+.cd:focus-visible{outline:2px solid var(--red)}
+.calmes{width:100%;justify-content:center}
+.calmes:disabled{opacity:.45;cursor:not-allowed}
+.calleg{margin:0;font-size:11.5px;display:flex;align-items:center;gap:6px}
+.cdot{width:6px;height:6px;border-radius:50%;background:var(--red);display:inline-block}
+@media (max-width:560px){.calpop{right:auto;left:0}}
 /* ===== Dados ===== */
+.acform{display:flex;gap:8px;flex-wrap:wrap}
+.acform input,.acform select{font:inherit;font-size:14px;color:var(--fg);background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+.acform input{flex:1;min-width:200px}
+.acform input:focus-visible,.acform select:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+#acessos{margin-top:4px}
 .dadosbar{appearance:none;font:inherit;color:var(--fg);cursor:pointer;width:100%;display:flex;align-items:center;gap:16px;flex-wrap:wrap;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px 22px;transition:border-color .15s}
 .dadosbar:hover{border-color:var(--red)} .dadosbar:focus-visible{outline:2px solid var(--red);outline-offset:3px}
 .dadosbar .dk{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppercase;letter-spacing:.04em}
@@ -394,6 +424,18 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;min-width:820px}
         <div class="tblwrap"><table class="tb mini" id="lst-ped"></table></div>
       </div>
     </div>
+  
+    <div class="card dcard" id="acessos" hidden>
+      <div class="blk-h"><h3 style="font-size:20px">Quem tem acesso</h3><span class="sub">só editores veem esta parte</span></div>
+      <p class="pinfo" style="margin:0">A pessoa abre o link do app e clica em <b>Entrar com Google</b> usando o e-mail cadastrado aqui. <b>Consulta</b> vê tudo; <b>Editor</b> também envia planilhas e libera acessos.</p>
+      <form class="acform" id="ac-form" novalidate>
+        <input type="email" id="ac-email" placeholder="email@gmail.com" autocomplete="off" aria-label="E-mail Google da pessoa">
+        <select id="ac-papel" aria-label="Tipo de acesso"><option value="consulta">Consulta</option><option value="editores">Editor</option></select>
+        <button class="back pdfb" type="submit">Adicionar</button>
+      </form>
+      <p class="pinfo" id="ac-msg" hidden></p>
+      <div class="tblwrap"><table class="tb mini" id="ac-lista"></table></div>
+    </div>
   </section>
 
 
@@ -401,9 +443,16 @@ table.tb{width:100%;border-collapse:collapse;font-size:13px;min-width:820px}
     <div class="viewhead">
       <h2>Extrusora Bandas</h2>
       <div class="acts">
-        <label class="pdfsel"><span>Exportar PDF</span>
-          <select id="pdf-opt" aria-label="O que exportar em PDF"></select>
-        </label>
+        <div class="pdfsel"><span>Exportar PDF</span>
+          <button type="button" class="calbtn" id="pdf-cal-btn" aria-haspopup="dialog" aria-expanded="false">📅 <b id="pdf-cal-txt">Escolha um dia</b></button>
+          <div class="calpop" id="pdf-cal" hidden role="dialog" aria-label="Escolher dia ou mês para o PDF">
+            <div class="calhead"><button type="button" class="calnav" id="cal-ant" aria-label="Mês anterior">‹</button><b id="cal-mes"></b><button type="button" class="calnav" id="cal-prox" aria-label="Próximo mês">›</button></div>
+            <div class="calgrid" id="cal-sem"></div>
+            <div class="calgrid" id="cal-dias"></div>
+            <button type="button" class="back pdfb calmes" id="cal-mes-btn"></button>
+            <p class="pinfo calleg"><span class="cdot"></span> dia com programação</p>
+          </div>
+        </div>
         <button class="back pdfb" id="pdf-go" type="button">Gerar PDF</button>
         <button class="back" id="voltar" type="button">← Menu</button>
       </div>
@@ -626,12 +675,8 @@ const VERM=[227,22,27], TINTA=[20,20,22], CINZA=[110,108,108], LINHA_C=[220,218,
 
 
 function atualizaBotoesPdf(){
-  const o=$('pdf-opt'), sig=DIAS.map(d=>d.iso).join(',')+'|'+REAL.length;
-  if(o.dataset.sig!==sig){ const atual=o.value;
-    o.innerHTML=(REAL.length?`<option value="mes">Mês total · ${dm(REAL[0].data)} a ${dm(REAL.at(-1).data)}</option>`:'')+
-      DIAS.map((d,i)=>`<option value="${i}">Dia ${d.data} · ${semana(d.iso)}${d.iso>HOJE?' (programado)':''}</option>`).join('');
-    o.dataset.sig=sig; if([...o.options].some(x=>x.value===atual)) o.value=atual; }
-  $('pdf-go').disabled = !window.jspdf || !o.options.length;
+  $('pdf-go').disabled = !window.jspdf || !pdfEscolha;
+  if(!$('pdf-cal').hidden) desenhaCal();
 }
 function msgPdf(t,erro){const m=$('pdf-msg'); m.textContent=t; m.hidden=!t; m.style.borderColor=erro?'var(--red)':'var(--line)';}
 
@@ -716,25 +761,25 @@ function blocoDia(doc,d,y){
   return doc.lastAutoTable.finalY;
 }
 
-function pdfMes(){
-  const n=REAL.length, tb=REAL.reduce((a,d)=>a+d.s.bandas,0), tk=REAL.reduce((a,d)=>a+d.s.kg,0);
-  const doc=novoDoc('Extrusora — mês até hoje',`Outubro/2026 · ${dm(REAL[0].data)} a ${dm(REAL.at(-1).data)} · ${n} dias produzidos`);
+function pdfMes(R, mes){
+  const n=R.length, tb=R.reduce((a,d)=>a+d.s.bandas,0), tk=R.reduce((a,d)=>a+d.s.kg,0);
+  const doc=novoDoc('Extrusora — '+nomeMes(mes),`${nomeMes(mes)} · ${dm(R[0].data)} a ${dm(R.at(-1).data)} · ${n} dias produzidos`);
   let y=cabecalho(doc);
-  y=secao(doc,y,'Produção do mês até hoje');
+  y=secao(doc,y,'Produção de '+nomeMes(mes)+(mes===HOJE.slice(0,7)?' até hoje':''));
   y=caixasKpi(doc,y,[['Bandas no mês',f(tb),'até hoje'],['Massa no mês',f(tk/1000,1)+' t',f(tk)+' kg'],['Média por dia',f(tb/n)+' bandas',f(tk/n)+' kg/dia'],
-    ['Ocupação média',f(100*REAL.reduce((a,d)=>a+d.s.oc,0)/n)+'%','das prensas em uso']]);
-  const totm={}; for(const d of REAL) for(const [m,v] of Object.entries(d.s.massa)){const x=totm[m]||(totm[m]={b:0,kg:0});x.b+=v.b;x.kg+=v.kg;}
+    ['Ocupação média',f(100*R.reduce((a,d)=>a+d.s.oc,0)/n)+'%','das prensas em uso']]);
+  const totm={}; for(const d of R) for(const [m,v] of Object.entries(d.s.massa)){const x=totm[m]||(totm[m]={b:0,kg:0});x.b+=v.b;x.kg+=v.kg;}
   const W=doc.internal.pageSize.getWidth(), meio=(W-24)/2;
   doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(...TINTA);doc.text('Produção por massa (cor da listra)',12,y);
   const yb=y; barrasPdf(doc,y+4,totm,meio-6);
   doc.text('Resumo por dia',12+meio+6,yb);
   doc.autoTable({...tabBase,startY:yb+3,margin:{...tabBase.margin,left:12+meio+6},tableWidth:meio-6,
     head:[['Dia','','Bandas','Massa (kg)','Prensas','Ocupação']],
-    body:REAL.map(d=>[d.data.slice(0,5),semana(d.iso),f(d.s.bandas),f(d.s.kg),PRENSAS.filter(p=>d.s.prensa[p]).join(' '),f(100*d.s.oc)+'%']),
-    foot:[['Total','',f(tb),f(tk),'',f(100*REAL.reduce((a,d)=>a+d.s.oc,0)/n)+'%']],
+    body:R.map(d=>[d.data.slice(0,5),semana(d.iso),f(d.s.bandas),f(d.s.kg),PRENSAS.filter(p=>d.s.prensa[p]).join(' '),f(100*d.s.oc)+'%']),
+    foot:[['Total','',f(tb),f(tk),'',f(100*R.reduce((a,d)=>a+d.s.oc,0)/n)+'%']],
     columnStyles:{2:{halign:'right'},3:{halign:'right'},5:{halign:'right'}}});
-  for(const d of REAL){doc.addPage(); blocoDia(doc,d,cabecalho(doc));}
-  rodapes(doc); return {doc,nome:`Extrusora_mes_ate_${REAL.at(-1).data.slice(0,5).replace('/','-')}.pdf`};
+  for(const d of R){doc.addPage(); blocoDia(doc,d,cabecalho(doc));}
+  rodapes(doc); return {doc,nome:`Extrusora_${mes}.pdf`};
 }
 function pdfDia(idx){
   const d=DIAS[idx];
@@ -744,16 +789,44 @@ function pdfDia(idx){
 }
 async function exportar(tipo){
   if(!window.jspdf){msgPdf('O gerador de PDF não carregou. Recarregue a página e tente de novo.',true);return;}
-  if(tipo==='mes'&&!REAL.length){msgPdf('Ainda não há dias produzidos no mês.',true);return;}
+  if(!pdfEscolha){msgPdf('Escolha um dia ou um mês no calendário.',true);return;}
   msgPdf('Gerando PDF…');
-  let r; try{ r = tipo==='mes'?pdfMes():pdfDia(+tipo); }catch(e){ msgPdf('Não foi possível gerar o PDF: '+e.message,true); return; }
+  let r; try{ if(pdfEscolha.tipo==='mes'){ const R=DIAS.filter(d=>d.iso.slice(0,7)===pdfEscolha.mes&&d.iso<=HOJE); if(!R.length){msgPdf('Esse mês ainda não tem dias produzidos.',true);return;} r=pdfMes(R,pdfEscolha.mes);} else { const i=DIAS.findIndex(d=>d.iso===pdfEscolha.iso); if(i<0){msgPdf('Esse dia não tem programação.',true);return;} r=pdfDia(i);} }catch(e){ msgPdf('Não foi possível gerar o PDF: '+e.message,true); return; }
   const blob=r.doc.output('blob');
   const url=URL.createObjectURL(blob), a=document.createElement('a');
   a.href=url; a.download=r.nome; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),4000);
   msgPdf(`PDF gerado: ${r.nome}`);
 }
-$('pdf-go').onclick=()=>exportar($('pdf-opt').value);
+$('pdf-go').onclick=()=>exportar();
+/* calendário */
+let pdfEscolha=null, calMes=HOJE.slice(0,7);
+const nomeMes = m => { const s=MESES[+m.slice(5,7)-1]; return s[0].toUpperCase()+s.slice(1)+'/'+m.slice(0,4); };
+const somaMes = (m,n) => { const d=new Date(+m.slice(0,4), +m.slice(5,7)-1+n, 1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); };
+function desenhaCal(){
+  const comDados=new Set(DIAS.map(d=>d.iso));
+  $('cal-mes').textContent=nomeMes(calMes);
+  $('cal-sem').innerHTML=['D','S','T','Q','Q','S','S'].map(x=>`<span class="cw">${x}</span>`).join('');
+  const ano=+calMes.slice(0,4), mes=+calMes.slice(5,7)-1, ini=new Date(ano,mes,1).getDay(), tot=new Date(ano,mes+1,0).getDate();
+  let h='<span></span>'.repeat(ini);
+  for(let d=1; d<=tot; d++){ const iso=`${calMes}-${String(d).padStart(2,'0')}`, tem=comDados.has(iso);
+    const sel=pdfEscolha&&pdfEscolha.tipo==='dia'&&pdfEscolha.iso===iso;
+    h+=`<button type="button" class="cd${tem?' tem':''}${sel?' sel':''}${iso===HOJE?' hoje':''}" data-iso="${iso}" ${tem?'':'disabled'} aria-label="${d} de ${MESES[mes]}${tem?', com programação':''}">${d}</button>`; }
+  $('cal-dias').innerHTML=h;
+  $('cal-dias').querySelectorAll('.cd.tem').forEach(b=>b.onclick=()=>{ pdfEscolha={tipo:'dia',iso:b.dataset.iso};
+    $('pdf-cal-txt').textContent='Dia '+brDe(b.dataset.iso); fechaCal(); atualizaBotoesPdf(); msgPdf(''); });
+  const nDias=DIAS.filter(d=>d.iso.slice(0,7)===calMes&&d.iso<=HOJE).length;
+  const mb=$('cal-mes-btn'); mb.textContent=nDias?`PDF do mês inteiro · ${nomeMes(calMes)} (${nDias} dias)`:'Mês sem dias produzidos'; mb.disabled=!nDias;
+  mb.onclick=()=>{ pdfEscolha={tipo:'mes',mes:calMes}; $('pdf-cal-txt').textContent='Mês '+nomeMes(calMes); fechaCal(); atualizaBotoesPdf(); msgPdf(''); };
+}
+function abreCal(){ if(pdfEscolha) calMes = pdfEscolha.tipo==='dia'?pdfEscolha.iso.slice(0,7):pdfEscolha.mes; $('pdf-cal').hidden=false; $('pdf-cal-btn').setAttribute('aria-expanded','true'); desenhaCal(); }
+function fechaCal(){ $('pdf-cal').hidden=true; $('pdf-cal-btn').setAttribute('aria-expanded','false'); }
+$('pdf-cal-btn').onclick=e=>{ e.stopPropagation(); $('pdf-cal').hidden?abreCal():fechaCal(); };
+$('cal-ant').onclick=e=>{ e.stopPropagation(); calMes=somaMes(calMes,-1); desenhaCal(); };
+$('cal-prox').onclick=e=>{ e.stopPropagation(); calMes=somaMes(calMes,1); desenhaCal(); };
+$('pdf-cal').addEventListener('click',e=>e.stopPropagation());
+document.addEventListener('click',()=>{ if(!$('pdf-cal').hidden) fechaCal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!$('pdf-cal').hidden) fechaCal(); });
 
 /* =====================================================================
    DADOS — leitura das planilhas, regras e armazenamento
@@ -909,7 +982,7 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "545249527083",
   appId: "1:545249527083:web:e0f032b4dfd7cb25e1716e"
 };
-let DB=null, EXT_DOCS=null, PED_RES=null, PED_PARTES={}, EDITOR=false, USUARIO=null, _escutas=[];
+let FS=null, ACESSO={editores:[],consulta:[]}, DB=null, EXT_DOCS=null, PED_RES=null, PED_PARTES={}, EDITOR=false, USUARIO=null, _escutas=[];
 const PARTE=150; // itens por documento
 function statusDados(t,erro){const m=$('dados-status'); m.textContent=t; m.hidden=!t; m.classList.toggle('erro',!!erro);}
 
@@ -940,7 +1013,7 @@ function iniciaFirebase(){
   progresso(40,'Conectando ao banco de dados');
   if(!window.firebase){ falhaCarregamento('o Firebase não carregou. Verifique a internet e recarregue.'); return; }
   firebase.initializeApp(FIREBASE_CONFIG);
-  const auth=firebase.auth(), fs=firebase.firestore();
+  const auth=firebase.auth(), fs=firebase.firestore(); FS=fs;
   DB={ collection:c=>({ onSnapshot:(next,err)=>fs.collection(c).onSnapshot(s=>next({docs:s.docs.map(d=>({id:d.id,data:()=>d.data()}))}),err) }),
        doc:p=>({ set:d=>fs.doc(p).set(d), delete:()=>fs.doc(p).delete() }) };
   const entrar=async()=>{
@@ -960,6 +1033,8 @@ function iniciaFirebase(){
     // editor = quem as regras deixam gravar a própria marcação em "editores"
     try{ await fs.doc('editores/'+u.uid).set({email:u.email,ultimo_acesso:new Date().toISOString()}); EDITOR=true; }catch(e){ EDITOR=false; }
     $('papel').textContent = EDITOR?'editor':'consulta';
+    if(EDITOR) _escutas.push(fs.doc('config/acesso').onSnapshot(s=>{const d=s.exists?s.data():{}; ACESSO={editores:d.editores||[],consulta:d.consulta||[]}; renderAcessos();},()=>{}));
+    renderAcessos();
     const fl={}; let prontos=0; const pronto=()=>{ if(++prontos===3){ progresso(100,'Pronto'); fimCarregamento(); } };
     const erro=e=>{ if(e.code==='permission-denied'){ fimCarregamento(); semAcesso(u.email); } else { statusDados('Não foi possível ler os dados ('+e.code+').',true); falhaCarregamento('erro ao ler os dados ('+e.code+')'); } };
     _escutas.push(DB.collection('extrusora').onSnapshot(s=>{EXT_DOCS=s.docs.map(d=>d.data()); aplicaDados(); renderDados(); if(!fl.e){fl.e=1;pronto();}},erro));
@@ -1188,6 +1263,31 @@ $('pr-dia').onchange=e=>{prDia=+e.target.value;prRender();};
 $('pr-ant').onclick=()=>{if(prDia>0){prDia--;prRender();}};
 $('pr-prox').onclick=()=>{if(prDia<DIAS.length-1){prDia++;prRender();}};
 $('voltar-p').onclick=()=>vai('');
+
+/* ---------- quem tem acesso (gravado em config/acesso no Firestore) ---------- */
+function renderAcessos(){
+  const c=$('acessos'); c.hidden=!EDITOR; if(!EDITOR) return;
+  const linhas=[...ACESSO.editores.map(e=>[e,'editores']),...ACESSO.consulta.map(e=>[e,'consulta'])].sort((a,b)=>a[0].localeCompare(b[0]));
+  $('ac-lista').innerHTML = linhas.length? `<thead><tr><th>E-mail</th><th>Acesso</th><th></th></tr></thead><tbody>`+
+    linhas.map(([e,p])=>`<tr><td>${e}${USUARIO&&e===USUARIO.email.toLowerCase()?' <span class="tagok">você</span>':''}</td><td>${p==='editores'?'Editor':'Consulta'}</td><td class="n"><button class="lnk" type="button" data-rm="${e}" data-p="${p}">Remover</button></td></tr>`).join('')+'</tbody>'
+    : `<tbody><tr><td class="vazio">Ninguém cadastrado ainda além do responsável pelo app.</td></tr></tbody>`;
+  document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>salvaAcesso(b.dataset.rm,b.dataset.p,'remover'));
+}
+function msgAc(t,erro){const m=$('ac-msg'); m.textContent=t; m.hidden=!t; m.className=erro?'err':'okmsg';}
+async function salvaAcesso(email,papel,acao){
+  const novo={editores:[...ACESSO.editores],consulta:[...ACESSO.consulta]};
+  for(const k of ['editores','consulta']) novo[k]=novo[k].filter(x=>x!==email);
+  if(acao==='adicionar') novo[papel].push(email);
+  try{
+    await FS.doc('config/acesso').set({...novo,atualizado_em:new Date().toISOString(),atualizado_por:USUARIO.email});
+    msgAc(acao==='adicionar'?`${email} liberado como ${papel==='editores'?'editor':'consulta'}.`:`${email} removido.`);
+  }catch(e){ msgAc('Não foi possível salvar: '+errDb(e)+'.',true); }
+}
+$('ac-form').addEventListener('submit',e=>{ e.preventDefault();
+  const email=$('ac-email').value.trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ msgAc('Digite um e-mail válido.',true); return; }
+  salvaAcesso(email,$('ac-papel').value,'adicionar'); $('ac-email').value='';
+});
 
 let _rz; addEventListener('resize',()=>{clearTimeout(_rz);_rz=setTimeout(()=>{if(!$('v-extrusora').hidden){periodo();dia();} if(!$('v-prensas').hidden) prRender();},200);});
 rota();
