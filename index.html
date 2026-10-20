@@ -171,6 +171,13 @@ h1 b{color:var(--red);font-weight:700}
 .cdot{width:6px;height:6px;border-radius:50%;background:var(--red);display:inline-block}
 @media (max-width:560px){.calpop{right:auto;left:0}}
 /* ===== Dados ===== */
+.delbtn{appearance:none;font:inherit;font-size:12px;white-space:nowrap;color:#ff8a8a;background:transparent;border:1px solid #ff6b6b66;border-radius:4px;padding:4px 8px;cursor:pointer}
+.delbtn:hover{background:#ff6b6b22;border-color:#ff6b6b}
+.delbtn:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.rmdatas{display:flex;gap:10px;flex-wrap:wrap}
+.rmdatas div{flex:1;min-width:150px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px;display:flex;flex-direction:column}
+.rmdatas span{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.rmdatas b{font-family:var(--display);font-size:20px;font-weight:600}
 .acform{display:flex;gap:8px;flex-wrap:wrap}
 .acform input,.acform select{font:inherit;font-size:14px;color:var(--fg);background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:8px 10px}
 .acform input{flex:1;min-width:200px}
@@ -1059,34 +1066,45 @@ function renderDados(){
   $('dados-resumo').textContent = EXT_DOCS==null?'carregando…':`Extrusagem até ${ue?brDe(ue).slice(0,5):'—'} · Carteira de ${up?brDe(up).slice(0,5):'—'}`;
   if(!$('v-prensas').hidden) prRender();
   if($('v-dados').hidden) return;
+  const lixo = (attr,id,rot) => EDITOR?`<button class="delbtn" type="button" ${attr}="${id}" aria-label="Excluir ${rot}" title="Excluir ${rot}">🗑 Excluir</button>`:'';
   // lista extrusagem
   const le=(EXT_DOCS||[]).slice().sort((a,b)=>b.iso.localeCompare(a.iso));
-  $('lst-ext').innerHTML = le.length? `<thead><tr><th>Data</th><th class="n">Platôs</th><th class="n">Bandas</th><th class="n">Massa (kg)</th><th>Arquivo</th><th>Importado em</th><th></th></tr></thead><tbody>`+
-    le.map(d=>{const b=d.itens.reduce((a,i)=>a+i.qtde,0),k=d.itens.reduce((a,i)=>a+(i.kg||0),0);
-      return `<tr><td>${d.data} · ${semana(d.iso)}${d.iso>HOJE?' <span class="fut">amanhã</span>':''}</td><td class="n">${d.itens.length}</td><td class="n">${f(b)}</td><td class="n">${f(k)}</td><td class="arq">${d.arquivo||'—'}</td><td>${d.importado_em?quando(d.importado_em):'—'}</td><td class="n"><button class="lnk" data-del-ext="${d.iso}" type="button">Remover</button></td></tr>`;}).join('')+'</tbody>'
+  $('lst-ext').innerHTML = le.length? `<thead><tr>${EDITOR?'<th></th>':''}<th>Extrusagem</th><th>Vulcanização</th><th class="n">Platôs</th><th class="n">Bandas</th><th class="n">Massa (kg)</th></tr></thead><tbody>`+
+    le.map(d=>{const b=d.itens.reduce((a,i)=>a+i.qtde,0),k=d.itens.reduce((a,i)=>a+(i.kg||0),0), v=vulcDe(d.iso);
+      return `<tr title="Arquivo: ${(d.arquivo||'—').replace(/"/g,'')}${d.importado_em?' · enviado em '+quando(d.importado_em):''}">${EDITOR?`<td>${lixo('data-del-ext',d.iso,'extrusagem de '+d.data)}</td>`:''}<td>${d.data} · ${semana(d.iso)}</td><td>${brDe(v)} · ${semana(v)}${v===HOJE?' <span class="tagok">hoje</span>':v>HOJE?' <span class="fut">'+rotFut(v)+'</span>':''}</td><td class="n">${d.itens.length}</td><td class="n">${f(b)}</td><td class="n">${f(k)}</td></tr>`;}).join('')+'</tbody>'
     : `<tbody><tr><td class="vazio">${EXT_DOCS==null?'Carregando…':'Nenhum dia importado ainda.'}</td></tr></tbody>`;
   // lista pedidos
   const lp=(PED_RES||[]).slice().sort((a,b)=>b.ref.localeCompare(a.ref));
-  $('lst-ped').innerHTML = lp.length? `<thead><tr><th>Carteira de</th><th class="n">Pedidos</th><th class="n">Itens</th><th class="n">Bandas</th><th class="n">Massa (kg)</th><th class="n">Fora</th><th>Arquivo</th><th>Importado em</th><th></th></tr></thead><tbody>`+
-    lp.map((d,i)=>`<tr><td>${brDe(d.ref)}${i===0?' <span class="tagok">atual</span>':''}</td><td class="n">${f(d.resumo.pedidos)}</td><td class="n">${f(d.resumo.itens)}</td><td class="n">${f(d.resumo.bandas)}</td><td class="n">${f(d.resumo.kg)}</td><td class="n" title="${(d.fora||[]).map(x=>x.desc).join(', ')}">${f((d.fora||[]).length)}</td><td class="arq">${d.arquivo||'—'}</td><td>${d.importado_em?quando(d.importado_em):'—'}</td><td class="n"><button class="lnk" data-del-ped="${d.ref}" type="button">Remover</button></td></tr>`).join('')+'</tbody>'
+  $('lst-ped').innerHTML = lp.length? `<thead><tr>${EDITOR?'<th></th>':''}<th>Carteira de</th><th class="n">Pedidos</th><th class="n">Itens</th><th class="n">Bandas</th><th class="n">Massa (kg)</th><th class="n">Fora</th></tr></thead><tbody>`+
+    lp.map((d,i)=>`<tr title="Arquivo: ${(d.arquivo||'—').replace(/"/g,'')}${d.importado_em?' · enviado em '+quando(d.importado_em):''}">${EDITOR?`<td>${lixo('data-del-ped',d.ref,'carteira de '+brDe(d.ref))}</td>`:''}<td>${brDe(d.ref)}${i===0?' <span class="tagok">atual</span>':''}</td><td class="n">${f(d.resumo.pedidos)}</td><td class="n">${f(d.resumo.itens)}</td><td class="n">${f(d.resumo.bandas)}</td><td class="n">${f(d.resumo.kg)}</td><td class="n" title="${(d.fora||[]).map(x=>x.desc).join(', ')}">${f((d.fora||[]).length)}</td></tr>`).join('')+'</tbody>'
     : `<tbody><tr><td class="vazio">${PED_RES==null?'Carregando…':'Nenhuma carteira importada ainda.'}</td></tr></tbody>`;
   document.querySelectorAll('[data-del-ext]').forEach(b=>b.onclick=()=>confirmaRemover('ext',b.dataset.delExt));
   document.querySelectorAll('[data-del-ped]').forEach(b=>b.onclick=()=>confirmaRemover('ped',b.dataset.delPed));
   $('imp-ext').disabled=$('imp-ped').disabled=!DB||!EDITOR;
   for(const z of ['zona-ext','zona-ped']) $(z).hidden=!EDITOR;
-  document.querySelectorAll('[data-del-ext],[data-del-ped]').forEach(b=>b.hidden=!EDITOR);
   $('so-consulta').hidden=EDITOR||!USUARIO;
 }
 function confirmaRemover(tipo,id){
   const box=$(tipo==='ext'?'prev-ext':'prev-ped');
-  box.hidden=false; box.innerHTML=`<p>Remover ${tipo==='ext'?'a programação de <b>'+brDe(id)+'</b>':'a carteira de <b>'+brDe(id)+'</b>'}? Isso não pode ser desfeito.</p>
-    <div class="prevbtns"><button class="back danger" id="rm-ok" type="button">Remover</button><button class="back" id="rm-no" type="button">Cancelar</button></div>`;
+  let msg, feito;
+  if(tipo==='ext'){
+    const d=(EXT_DOCS||[]).find(x=>x.iso===id)||{itens:[]}, v=vulcDe(id), b=d.itens.reduce((a,i)=>a+i.qtde,0);
+    msg=`<p><b>Excluir esta programação?</b></p>
+      <div class="rmdatas"><div><span>Extrusagem</span><b>${brDe(id)} · ${semana(id)}</b></div><div><span>Vulcanização</span><b>${brDe(v)} · ${semana(v)}</b></div></div>
+      <p class="pinfo">${d.itens.length} platôs · ${f(b)} bandas. A programação sai da aba <b>Extrusora</b> no dia ${brDe(id).slice(0,5)} e da aba <b>Prensas</b> no dia ${brDe(v).slice(0,5)}. Isso não pode ser desfeito, mas você pode enviar o PDF de novo depois.</p>`;
+    feito=`Excluído: extrusagem de ${brDe(id)} (vulcanização ${brDe(v)}).`;
+  } else {
+    msg=`<p><b>Excluir a carteira de pedidos de ${brDe(id)}?</b></p><p class="pinfo">Ela sai do histórico. Se for a carteira atual, a anterior passa a valer. Isso não pode ser desfeito.</p>`;
+    feito=`Excluída: carteira de ${brDe(id)}.`;
+  }
+  box.hidden=false; box.innerHTML=msg+`<div class="prevbtns"><button class="back danger" id="rm-ok" type="button">Sim, excluir</button><button class="back" id="rm-no" type="button">Cancelar</button></div>`;
+  box.scrollIntoView({block:'center',behavior:'smooth'});
   $('rm-no').onclick=()=>{box.hidden=true;};
-  $('rm-ok').onclick=async()=>{ $('rm-ok').disabled=true;
+  $('rm-ok').onclick=async()=>{ $('rm-ok').disabled=true; $('rm-no').disabled=true;
     try{ if(tipo==='ext') await DB.doc('extrusora/'+id).delete();
          else { const n=(PED_RES.find(x=>x.ref===id)||{}).partes||0; await DB.doc('pedidos/'+id).delete(); for(let k=0;k<n;k++) await DB.doc(`pedidos_partes/${id}_${k}`).delete(); }
-         box.innerHTML='<p>Removido.</p>'; setTimeout(()=>box.hidden=true,1500);
-    }catch(e){ box.innerHTML=`<p class="err">Não foi possível remover: ${errDb(e)}.</p>`; } };
+         box.innerHTML=`<p class="okmsg">${feito}</p>`; setTimeout(()=>box.hidden=true,4000);
+    }catch(e){ box.innerHTML=`<p class="err">Não foi possível excluir: ${errDb(e)}.</p>`; } };
 }
 async function escolheExt(file){
   const box=$('prev-ext'); box.hidden=false; box.innerHTML='<p>Lendo a planilha…</p>';
