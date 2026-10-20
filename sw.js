@@ -1,6 +1,6 @@
 // PCP Bandas · service worker
 // Troque o CACHE_NAME a cada nova versão para forçar os celulares a atualizarem.
-const CACHE_NAME = 'pcp-bandas-v8';
+const CACHE_NAME = 'pcp-bandas-v9';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
